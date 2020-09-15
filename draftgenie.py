@@ -3,9 +3,11 @@ import random
 from sklearn.tree import DecisionTreeRegressor
 from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestRegressor
-from sklearn.metrics import mean_absolute_error
+from sklearn.metrics import mean_absolute_error, accuracy_score
+from xgboost import XGBRegressor
 
-#1996
+
+#1990
 train_data = pd.read_csv("train_draft_data.csv")
 #print(train_data)
 
@@ -39,32 +41,34 @@ def get_rid_of_nulls(train_data):
 train_data = pd.read_csv("no_empties.csv")
 train_data = train_data.dropna(axis=0)
 
-#print(train_data[].describe())
+#print(train_data["WS/48"].describe())
 
 features = ["MPG","PPG","RPG","APG","WS/48","BPM","VORP"]
 X = train_data[features]
 y = train_data.Pk
 
-train_X,val_X,train_y,val_y = train_test_split(X,y,random_state=0)
+train_X,val_X,train_y,val_y = train_test_split(X,y)
 
 ###Determine best number of nodes
 candidate_max_leaf_nodes =[6,7,8,9,10,11,12,13,14,15]
 scores = {leaf_size: get_mae(leaf_size, train_X, val_X, train_y, val_y) for leaf_size in candidate_max_leaf_nodes}
 best_tree_size = min(scores, key=scores.get)
-#print(best_tree_size)
+print(best_tree_size)
 
-train_model = DecisionTreeRegressor(max_leaf_nodes=60,random_state=1)
-train_model.fit(X,y)
-train_pred = train_model.predict(X)
+##### Pick a model
+train_model = DecisionTreeRegressor(max_leaf_nodes=best_tree_size)
+#train_model = RandomForestRegressor()
+#train_model = XGBRegressor(n_estimators=200,learning_rate=.1)
+
+
+train_model.fit(train_X,train_y)
+train_pred = train_model.predict(val_X)
 #print(train_pred)
 
-#train_model = RandomForestRegressor(random_state=1)
-#train_model.fit(train_X,train_y)
-#train_pred = train_model.predict(val_X)
-#print(train_pred)
+train_mae = mean_absolute_error(train_pred,val_y)
+print(train_mae)
 
-#train_mae = mean_absolute_error(train_pred,y)
-#print(train_mae)
+#print(accuracy_score(val_y,train_pred)*100)
 
 data = pd.read_csv("https://docs.google.com/spreadsheets/u/0/d/1_Ku5z1ZmroFhRuC6Pn37QZrbrMi_71ije-SypV8Woyw/export?format=csv&id=1_Ku5z1ZmroFhRuC6Pn37QZrbrMi_71ije-SypV8Woyw&gid=0")
 #print(data)
@@ -97,13 +101,12 @@ vorp= data.at[0,"VORP"]
 if pd.isnull(data["VORP"].iloc[0]):
 	vorp = train_data["VORP"].mean()
 ####backup
-#mpg = (int(input("Enter in minutes per game, range(2,41): ")))
-#ppg = (int(input("Enter in points per game, range(0,27): ")))
-#rpg = (int(input("Enter in rebounds per game, range(0,10): ")))
-#apg = (int(input("Enter in assists per game, range(0,9): ")))
+#mpg = (float(input("Enter in minutes per game, range(2,41): ")))
+#rpg = (float(input("Enter in rebounds per game, range(0,10): ")))
+#apg = (float(input("Enter in assists per game, range(0,9): ")))
 #ws48 = (float(input("Enter in win share per 48 mintues, range(-.5,.5): ")))
-#bpm = (int(input("Enter in box plus/minus, range(-23,20): ")))
-#vorp = (int(input("Enter in value over replacement player, range(0,10): ")))
+#bpm = (float(input("Enter in box plus/minus, range(-23,20): ")))
+#vorp = (float(input("Enter in value over replacement player, range(0,10): ")))
 
 print("MPG:{} PPG:{} RPG:{} APG:{} WS:{:.2f} BPM:{} VORP:{} ".format(mpg,ppg,rpg,apg,ws48,bpm,vorp),end="\n\n")
 test_X = ([[mpg,ppg,rpg,apg,ws48,bpm,vorp]])
